@@ -2,14 +2,20 @@
 
 # dependencies
 /node_modules
+/back/node_modules
 /.pnp
 .pnp.js
+
+#notes
+MongoInfo.txt
+Notes.txt
 
 # testing
 /coverage
 
 # production
 /build
+
 
 # misc
 .DS_Store
