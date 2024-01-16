@@ -1,118 +1,73 @@
-import React, {Component, useRef} from "react";
-import DatePicker from "react-datepicker";
+import React from "react";
+import { useState } from "react";
 import axios from "axios";
-import "react-datepicker/dist/react-datepicker.css";
+import { useParams } from "react-router-dom";
+import Navbar from "./navbar.component";
 
-export default class CreateExercise extends Component{
-    constructor(props){ //for path prop
-        super(props); // need for constructor of sub class
-
-        //define "this" for the class
-        this.onChangeUsername = this.onChangeUsername.bind(this); //bind this to each of the methods
-        this.onChangeDescription = this.onChangeDescription.bind(this);
-        this.onChangeDuration = this.onChangeDuration.bind(this);
-        this.onChangeDate = this.onChangeDate.bind(this);
-        this.onSubmit = this.onSubmit.bind(this);
-
-        this.state = {
-            username: "",
-            desciption: "",
+export default function CreateExercise(){
+    const params = useParams()
+    const [exercise, setExercise] = useState({
+            descipt: "",
             duration: 0,
-            date: new Date(),
-            users: []
-        }
-    }
-    //lifecycle method
-    componentDidMount(){//called before anything displayed on page
-       axios.get("http://localhost:5000/users/")
-       .then(res => {
-            if(res.data.length > 0){
-                this.setState({
-                    users: res.data.map(user => user.username),
-                    username: res.data[0].username //first username in db
-                })
-            }//end of if
-       })
-       .catch(err => console.log(err));
-    }
+            date: "",
+            users: params.id
+    })
 
-    onChangeUsername(e){
-        this.setState({
-            username: e.target.value,
+    function onChangeDescription(e){
+        setExercise({
+            ...exercise,
+            descipt: e.target.value,
         });
     }
 
-    onChangeDescription(e){
-        this.setState({
-            desciption: e.target.value,
-        });
-    }
-
-    onChangeDuration(e){
-        this.setState({
+    function onChangeDuration(e){
+        setExercise({
+            ...exercise,
             duration: e.target.value,
         });
     }
 
-    onChangeDate(date){
-        this.setState({
-            date: date,
+    function onChangeDate(e){
+        setExercise({
+            ...exercise,
+            date: e.target.value
         });
     }
 
-    //when submit button clicked
-    onSubmit(e){
-        e.preventDefault(); //prevents html form default behaviour
-        const exercise = {
-            username: this.state.username,
-            description: this.state.desciption,
-            duration: this.state.duration,
-            date: this.state.date
+    function onSubmit(e){
+        e.preventDefault();
+        const body = {
+           service: "Exercise",
+           method: "PUT",
+           payload: exercise
         }
 
-        //add user input for "exercise log" from frontend to backend
-        axios.post("http://localhost:5000/exercises/add", exercise) //send http post request to endpoint which expects json (exercise)
-        .then(res => console.log(res.data))
+        axios.put(process.env.REACT_APP_APIGW_URI, body)
+        .then(res => console.log(res.data.body))
         .catch(err => console.log(err));
         
         console.log(exercise);
-        window.location = "/"; //take back to homepage
-    }
-
-    render(){
+        window.location = `/exercises/${params.id}`; //take back to homepage
+      }
+  
         return (
             <div>
+            <Navbar id={params.id}></Navbar>
             <h3>Create New Exercise Log</h3>
-            <form onSubmit={this.onSubmit}>
-              <div className="form-group"> 
-                <label>Username: </label>
-                {/*select is dropdown menu*/}
-                {/**onChange is when user changes selected option in <select> element */}
-                <select required className="form-control" value={this.state.username} onChange={this.onChangeUsername}>
-                    { 
-                        //.map is do for each item in the returned array the callback arg
-                        this.state.users.map(function(user) { 
-                            //option tag is an option in the select
-                            return <option key={user} value={user}> {user} </option>;
-                        }) 
-                    }
-                </select>
-
-              </div>
-
+            <form onSubmit={onSubmit}>
               <div className="form-group"> 
                 <label>Description: </label>
-                <input  type="text" required className="form-control" value={this.state.description} onChange={this.onChangeDescription}/>
+                <input  type="text" required className="form-control" value={exercise.descript} onChange={onChangeDescription}/>
               </div>
 
               <div className="form-group">
                 <label>Duration (in minutes): </label>
-                <input type="text" className="form-control" value={this.state.duration} onChange={this.onChangeDuration}/>
+                <input type="text" className="form-control" value={exercise.duration} onChange={onChangeDuration}/>
               </div>
 
               <div className="form-group">
                 <label>Date: </label>
-                <div> <DatePicker selected={this.state.date} onChange={this.onChangeDate}/> </div>
+                <div> <input type="text" value={exercise.date} onChange={onChangeDate}/> </div>
               </div>
       
               <div className="form-group">
@@ -121,5 +76,4 @@ export default class CreateExercise extends Component{
             </form>
           </div>
         )
-    }
 }

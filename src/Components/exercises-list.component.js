@@ -1,73 +1,83 @@
-import React, {Component} from "react";
+import React, {useState, useEffect} from "react";
 import {Link} from "react-router-dom";
 import axios from "axios";
+import { useParams } from "react-router-dom";
+import Navbar from "./navbar.component";
 import "../styles/exercises-list-comp.css";
 
-function Exercise(props){
-    return(
-        <tr>
-            <td>{props.exercise.username}</td>
-            <td>{props.exercise.description}</td>
-            <td>{props.exercise.duration}</td>
-            <td>{props.exercise.date.substring(0,10)}</td>
-            <td>
-                <Link to={"/edit/"+props.exercise._id}>edit</Link> | <a href="#" onClick={() => { props.deleteExercise(props.exercise._id) }}>delete</a>
-            </td>
-      </tr>
-    )
-}
+function ExercisesList(){
+    const params = useParams()
+    const [exercises, setExercises] = useState([])
 
-class ExercisesList extends Component{
-    constructor(props){
-        super(props);
-        this.deleteExercise = this.deleteExercise.bind(this);
-
-        this.state = {exercises: []};//component class variable
-    }
-
-    componentDidMount(){ //before anything displays
-        axios.get("http://localhost:5000/exercises/")
+    useEffect(() => {
+        const id = params.userid
+        const body = {
+            service: "Exercise",
+            method: "GET",
+            payload: {
+                id: id
+            }
+        }
+        axios.put(process.env.REACT_APP_APIGW_URI, body)
         .then(res => {
-            this.setState({exercises: res.data}) //put all db items in exercises
+            setExercises(res.data.body) //put all db items in exercises
         })
         .catch(err => {console.log(err)});
-    }
+    
+    }, [])
 
-    deleteExercise(id){
-        axios.delete("http://localhost:5000/exercises/"+id)
+    function deleteExercise(id){
+        const body = {
+            service: "Exercise",
+            method: "DELETE",
+            payload: {
+                id: id
+            }
+        }
+        axios.put(process.env.REACT_APP_APIGW_URI, body)
             .then(res => { console.log(res.data)});
 
-        this.setState(
-            //for every item in exercises arr, return if item._id !== id
-            {exercises: this.state.exercises.filter(item => item._id !== id)}
+        setExercises(
+            exercises.filter(item => String(item.exercise_id) !== id)
             );
     }
 
-    exerciseList(){
-        return this.state.exercises.map(currentExercise =>{
-            return <Exercise exercise={currentExercise} deleteExercise={this.deleteExercise} key={currentExercise._id}></Exercise>
+    function exerciseList(){
+        return exercises.map(currentExercise =>{
+            return <Exercise exercise={currentExercise} deleteExercise={deleteExercise}></Exercise>
         })
     }
 
-    render(){
+    function Exercise(props){
+        return(
+            <tr>
+                <td>{props.exercise.description}</td>
+                <td>{props.exercise.duration}</td>
+                <td>{props.exercise.date}</td>
+                <td>
+                    <Link to={`/edit/${params.userid}/`+props.exercise.exercise_id}>edit</Link> | <a href="#" onClick={() => { props.deleteExercise(props.exercise.exercise_id) }}>delete</a>
+                </td>
+          </tr>
+        )
+    }
+
         return (
             <div className="main">
+                <Navbar id={params.userid}></Navbar>
                 <h3>Logged Exercises</h3>
                 <table className="table">
                     <thead className="thead-light">
                         <tr>
-                            <th>Username</th>
                             <th>Description</th>
                             <th>Duration</th>
                             <th>Date</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>{ this.exerciseList() }</tbody> {/**method runs on start because of () */}
+                    <tbody>{ exerciseList() }</tbody>
                 </table>
             </div>
         )
-    }
 }
 
 export default ExercisesList;
