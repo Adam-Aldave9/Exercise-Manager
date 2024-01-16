@@ -9,6 +9,8 @@
 #notes
 MongoInfo.txt
 Notes.txt
+aws-api-contracts.txt
+database-organization.txt
 
 # testing
 /coverage

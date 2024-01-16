@@ -1,157 +1,112 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {useParams} from "react-router-dom";
 import axios from 'axios';
-import DatePicker from 'react-datepicker';
-import "react-datepicker/dist/react-datepicker.css";
+import Navbar from "./navbar.component";
 
 function EditExercise(){
-    const [state, setState] = useState({
-        username: "",
+    const {id} = useParams();
+    const {userid} = useParams()
+    const [exercise, setExercise] = useState({
         description: "",
         duration: 0,
-        date: new Date(),
-        users: []
+        date: "",
+        users: id
     });
 
-    const ref = useRef("userInput");
-    const lastState = useRef({});
-    const initialRender = useRef(true);
-    const {id} = useParams();
-    
+    const [rerender, setRerender] = useState(false)
     useEffect(() => {
-        if(initialRender.current){
-            second();
-            lastState.current = state;
-            initialRender.current = false;
-        }
-        else setState(lastState.current);
-        first();
-    }, [initialRender.current]);
+       if(rerender === false) first()
+    }, [rerender]);
     
 
     async function first(){
-        await axios.get(`http://localhost:5000/exercises/${id}`) //id directly from url 
+        const body = {
+            service: "Exercise",
+            method: "GET",
+            payload: {
+                id: id,
+                userid: userid
+            }
+        }
+
+        await axios.put(process.env.REACT_APP_APIGW_URI, body) //id directly from url 
             .then(res =>{
-                setState({
-                    username: res.data.username,
-                    description: res.data.description,
-                    duration: res.data.duration,
-                    date: new Date(res.data.date),
-                    users: state.users
+                setExercise({
+                    description: res.data.body[0].description,
+                    duration: res.data.body[0].duration,
+                    date: res.data.body[0].date,
+                    users: res.data.body[0].users
                 });
+                setRerender(true)
             })
             .catch(err => console.log(err));
     }
-    async function second(){
-        await axios.get('http://localhost:5000/users/')
-        .then(response => {
-            if (response.data.length > 0) {
-                setState({
-                    ...state,
-                    users: response.data.map(user => user.username)
-                })
-            }
-        },)
-        .catch((error) => {
-            console.log(error);
-        });
-    }
-    
-    
-    function onChangeUsername(e) {
-        setState({
-            description: state.description,
-            duration: state.duration,
-            date: state.date,
-            users: state.users,
-            username: e.target.value
-        })
-      }
-    
-      
     function onChangeDescription(e) {
-        setState({
-            username: state.username,
-            duration: state.duration, 
-            date: state.date,
-            users: state.users,
+        setExercise({
+            ...exercise,
             description: e.target.value
         })
       }
     
       
     function onChangeDuration(e) {
-        setState({
-            username: state.username,
-            description: state.description, 
-            date: state.date,
-            users: state.users,
+        setExercise({
+            ...exercise,
             duration: e.target.value
         })
       }
     
       
-    function onChangeDate(newDate) {
-        setState({
-            username: state.username,
-            description: state.description,
-            duration: state.duration, 
-            date: newDate,
-            users: state.users
+    function onChangeDate(e) {
+        setExercise({
+            ...exercise,
+            date: e.target.value
         })
       }
     
       
     function onSubmit(e) {
         e.preventDefault();
-    
-        const exercise = {
-          username: state.username,
-          description: state.description,
-          duration: Number(state.duration),
-          date: state.date
+        const body = {
+            service: "Exercise",
+            method: "UPDATE",
+            payload: exercise
         }
     
-        console.log(exercise);
-    
-        axios.post(`http://localhost:5000/exercises/update/${id}`, exercise)
-          .then(res => console.log(res.data))
+        axios.put(process.env.REACT_APP_APIGW_URI, body)
+          .then(res => {console.log(res.data); window.location = `/exercises/${userid}`;})//id is exercise id. adjust
           .catch(err => console.log(err));
-    
-        window.location = '/';
-      }
+    }
+
     return (
         <div>
-            <h3>Edit Exercise Log</h3>
-            <form onSubmit={onSubmit}>
-                <div className="form-group"> 
-                    <label>Username: </label>
-                    <select ref={ref} required className="form-control" value={state.username} onChange={onChangeUsername}>
-                        {
-                            state.users.map((user) => { return <option key={user} value={user}>{user} </option>;})
-                        }
-                    </select>
-                </div>
+            { rerender === false ? (<h1>LOADING</h1>) : (
+            <div>
+                <Navbar id={id}></Navbar>
+                <h3>Edit Exercise Log</h3>
+                <form onSubmit={onSubmit}>
 
                 <div className="form-group"> 
                     <label>Description: </label>
-                    <input  type="text" required className="form-control" value={state.description} onChange={onChangeDescription}/>
+                    <input  type="text" required className="form-control" value={exercise.description} onChange={onChangeDescription}/>
                 </div>
 
                 <div className="form-group">
                     <label>Duration (in minutes): </label>
-                    <input type="text" className="form-control" value={state.duration} onChange={onChangeDuration}/>
+                    <input type="text" className="form-control" value={exercise.duration} onChange={onChangeDuration}/>
                 </div>
 
                 <div className="form-group">
                     <label>Date: </label>
-                    <div> <DatePicker selected={state.date} onChange={onChangeDate}/></div>
+                    <div> <input type="text" value={exercise.date} onChange={onChangeDate}/></div>
                 </div>
 
                 <div className="form-group">
                     <input type="submit" value="Edit Exercise Log" className="btn btn-primary" />
                 </div>
             </form>
+            </div>
+            )}
         </div>
     )
 
